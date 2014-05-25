@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+<title>How severe weather events can cause public health and economic problems</title>
+
+
+
+
+
+<style type="text/css">
+body, td {
+   font-family: sans-serif;
+   background-color: white;
+   font-size: 13px;
+}
+
+body {
+  max-width: 800px;
+  margin: auto;
+  line-height: 20px;
+}
+
+tt, code, pre {
+   font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
+}
+
+h1 { 
+   font-size:2.2em; 
+}
+
+h2 { 
+   font-size:1.8em; 
+}
+
+h3 { 
+   font-size:1.4em; 
+}
+
+h4 { 
+   font-size:1.0em; 
+}
+
+h5 { 
+   font-size:0.9em; 
+}
+
+h6 { 
+   font-size:0.8em; 
+}
+
+a:visited {
+   color: rgb(50%, 0%, 50%);
+}
+
+pre, img {
+  max-width: 100%;
+}
+
+pre code {
+   display: block; padding: 0.5em;
+}
+
+code {
+  font-size: 92%;
+  border: 1px solid #ccc;
+}
+
+code[class] {
+  background-color: #F8F8F8;
+}
+
+table, td, th {
+  border: none;
+}
+
+blockquote {
+   color:#666666;
+   margin:0;
+   padding-left: 1em;
+   border-left: 0.5em #EEE solid;
+}
+
+hr {
+   height: 0px;
+   border-bottom: none;
+   border-top-width: thin;
+   border-top-style: dotted;
+   border-top-color: #999999;
+}
+
+@media print {
+   * { 
+      background: transparent !important; 
+      color: black !important; 
+      filter:none !important; 
+      -ms-filter: none !important; 
+   }
+
+   body { 
+      font-size:12pt; 
+      max-width:100%; 
+   }
+       
+   a, a:visited { 
+      text-decoration: underline; 
+   }
+
+   hr { 
+      visibility: hidden;
+      page-break-before: always;
+   }
+
+   pre, blockquote { 
+      padding-right: 1em; 
+      page-break-inside: avoid; 
+   }
+
+   tr, img { 
+      page-break-inside: avoid; 
+   }
+
+   img { 
+      max-width: 100% !important; 
+   }
+
+   @page :left { 
+      margin: 15mm 20mm 15mm 10mm; 
+   }
+     
+   @page :right { 
+      margin: 15mm 10mm 15mm 20mm; 
+   }
+
+   p, h2, h3 { 
+      orphans: 3; widows: 3; 
+   }
+
+   h2, h3 { 
+      page-break-after: avoid; 
+   }
+}
+</style>
+
+
+
+</head>
+
+<body>
+<h1>How severe weather events can cause public health and economic problems</h1>
+
+<h2>Synopsis - Summary </h2>
+
+<p>Storms and severe weather can have big health and economic consequences. The understanding of the specific types of events associated with the greatest consequences can help inform disaster preparedness policies that can potentially mitigate damages and help target limited resources. 
+ The purpose of the current study is to identify the specific weather-related events that are associated witht the greatest amount of economic and health consequence. 
+ Data for this analysis come from the U.S. National Oceanic and Atmospheric Administration&#39;s (NOAA) storm database. Based on an exploratory analysis of the NOAA storm database, the storm related events associated with the greatest number of fatalities were tornados and heat. The greatest amount of economic damage was due to winds (e.g., tropical storm, storm surge, hurricane, and typhoons) and flooding.</p>
+
+<h2>Phase 1 - Data Processing</h2>
+
+<h1>Read Data</h1>
+
+<pre><code class="r">rawdata &lt;- read.csv(bzfile(&quot;C:/Users/hsofoian/Desktop/DataScience/Course 5 - Reproducible Research/data/repdata_data_StormData.csv.bz2&quot;))
+</code></pre>
+
+<h1>Relevant fields + Homogenous</h1>
+
+<pre><code class="r">data &lt;- rawdata[, c(&quot;STATE&quot;, &quot;EVTYPE&quot;, &quot;FATALITIES&quot;, &quot;INJURIES&quot;, &quot;PROPDMG&quot;, 
+    &quot;PROPDMGEXP&quot;, &quot;CROPDMG&quot;, &quot;CROPDMGEXP&quot;)]
+colnames(data) &lt;- tolower(colnames(data))
+
+data$evtype &lt;- factor(toupper(data$evtype))
+data$propdmgexp &lt;- factor(toupper(data$propdmgexp))
+data$cropdmgexp &lt;- factor(toupper(data$cropdmgexp))
+</code></pre>
+
+<h1>Convert the values of the columns <strong>propdmg</strong></h1>
+
+<pre><code class="r">exponents &lt;- data.frame(c(&quot;&quot;, &quot;0&quot;, &quot;H&quot;, &quot;K&quot;, &quot;M&quot;, &quot;B&quot;), c(1, 1, 10^2, 10^3, 
+    10^6, 10^9))
+colnames(exponents) &lt;- c(&quot;validexp&quot;, &quot;multiplier&quot;)
+
+data &lt;- subset(data, (cropdmgexp %in% exponents$validexp) &amp; (propdmgexp %in% 
+    exponents$validexp))
+
+# convert damage values in number
+colnames(exponents) &lt;- c(&quot;validexp&quot;, &quot;propdmgmultiplier&quot;)
+data &lt;- merge(data, exponents, by.x = &quot;propdmgexp&quot;, by.y = &quot;validexp&quot;)
+data$propdmg &lt;- (data$propdmg * data$propdmgmultiplier)
+
+colnames(exponents) &lt;- c(&quot;validexp&quot;, &quot;cropdmgmultiplier&quot;)
+data &lt;- merge(data, exponents, by.x = &quot;cropdmgexp&quot;, by.y = &quot;validexp&quot;)
+data$cropdmg &lt;- (data$cropdmg * data$cropdmgmultiplier)
+</code></pre>
+
+<h2>A - Calculation of economic impact</h2>
+
+<p>Calculation of the <strong>economic impact</strong> of different weather events. </p>
+
+<pre><code class="r">data$totalCost &lt;- data$propdmg + data$cropdmg  #define total cost
+economicData &lt;- subset(data, totalCost &gt; 0)  #select only events with cost &gt; 0
+
+economicData &lt;- economicData[, c(&quot;state&quot;, &quot;evtype&quot;, &quot;totalCost&quot;)]
+
+library(reshape2)
+library(plyr)
+economicData &lt;- dcast(economicData, state ~ evtype, fun.aggregate = sum, value.var = &quot;totalCost&quot;)
+economicData &lt;- melt(economicData, id = &quot;state&quot;)
+economicData &lt;- arrange(economicData, state, desc(value))
+</code></pre>
+
+<p>The event that generated the higher <strong>totalCost</strong>:</p>
+
+<pre><code class="r">economicData &lt;- split(economicData, economicData$state)
+economicData &lt;- lapply(economicData, function(x) x[1, ])
+economicData &lt;- melt(economicData, id = &quot;state&quot;, id.vars = &quot;variable&quot;, measure.vars = &quot;value&quot;)
+</code></pre>
+
+<h2>B - Calculation of health impact</h2>
+
+<p>Calculation of the <strong>health impact</strong> of fatalities and injuries caused by each event. </p>
+
+<pre><code class="r"># define total health cost through pca
+pca &lt;- data[, c(&quot;fatalities&quot;, &quot;injuries&quot;)]
+pca &lt;- princomp(pca)
+summary(pca)
+</code></pre>
+
+<pre><code>## Importance of components:
+##                        Comp.1  Comp.2
+## Standard deviation     5.4379 0.72389
+## Proportion of Variance 0.9826 0.01741
+## Cumulative Proportion  0.9826 1.00000
+</code></pre>
+
+<pre><code class="r">
+data$totalHealthCost &lt;- pca$scores[, 1]
+healthData &lt;- subset(data, totalHealthCost &gt; 0)  #select only events with cost &gt; 0
+healthData &lt;- healthData[, c(&quot;state&quot;, &quot;evtype&quot;, &quot;totalHealthCost&quot;)]
+</code></pre>
+
+<pre><code class="r"># sum over states by type of event and arrange for decreasing costs
+healthData &lt;- dcast(healthData, state ~ evtype, fun.aggregate = sum, value.var = &quot;totalHealthCost&quot;)
+healthData &lt;- melt(healthData, id = &quot;state&quot;)
+healthData &lt;- arrange(healthData, state, desc(value))
+healthData &lt;- split(healthData, healthData$state)
+healthData &lt;- lapply(healthData, function(x) x[1, ])
+healthData &lt;- melt(healthData, id = &quot;state&quot;, id.vars = &quot;variable&quot;, measure.vars = &quot;value&quot;)
+</code></pre>
+
+<h2>Phase 2 - Results</h2>
+
+<h2>Economic impact</h2>
+
+<p>Costs in Bn $</p>
+
+<pre><code class="r">colnames(economicData) &lt;- c(&quot;eventType&quot;, &quot;totalCost_Bn&quot;, &quot;state&quot;)
+economicData &lt;- economicData[, c(&quot;state&quot;, &quot;eventType&quot;, &quot;totalCost_Bn&quot;)]
+
+# convert in Bn$
+economicData$totalCost_Bn &lt;- economicData$totalCost_Bn/10^9
+economicData[!is.na(economicData$totalCost_Bn), ]
+</code></pre>
+
+<pre><code>##    state                eventType totalCost_Bn
+## 1     AK                    FLOOD    1.571e-01
+## 2     AL                  TORNADO    6.378e+00
+## 3     AM               WATERSPOUT    5.102e-03
+## 4     AN MARINE THUNDERSTORM WIND    1.690e-04
+## 5     AR                  TORNADO    2.592e+00
+## 6     AS                  TSUNAMI    8.102e-02
+## 7     AZ                     HAIL    2.829e+00
+## 8     CA                    FLOOD    1.174e+02
+## 9     CO                     HAIL    1.515e+00
+## 10    CT                  TORNADO    5.962e-01
+## 11    DC           TROPICAL STORM    1.276e-01
+## 12    DE            COASTAL FLOOD    4.015e-02
+## 13    FL        HURRICANE/TYPHOON    2.855e+01
+## 14    GA                  TORNADO    3.272e+00
+## 15    GM         MARINE TSTM WIND    3.226e-03
+## 16    GU                  TYPHOON    6.011e-01
+## 17    HI              FLASH FLOOD    1.571e-01
+## 18    IA                    FLOOD    2.970e+00
+## 19    ID                    FLOOD    1.142e-01
+## 20    IL              RIVER FLOOD    1.003e+01
+## 21    IN                  TORNADO    2.595e+00
+## 22    KS                  TORNADO    2.682e+00
+## 23    KY                  TORNADO    8.907e-01
+## 24    LA              STORM SURGE    3.174e+01
+## 26    LE MARINE THUNDERSTORM WIND    2.500e-05
+## 28    LM         MARINE TSTM WIND    1.205e-03
+## 29    LO         MARINE TSTM WIND    5.000e-05
+## 30    LS         MARINE TSTM WIND    4.000e-04
+## 31    MA                  TORNADO    7.560e-01
+## 32    MD           TROPICAL STORM    5.392e-01
+## 33    ME                ICE STORM    3.182e-01
+## 34    MH                HIGH SURF    5.000e-03
+## 35    MI                  TORNADO    1.073e+00
+## 36    MN                  TORNADO    1.917e+00
+## 37    MO                  TORNADO    4.823e+00
+## 38    MS        HURRICANE/TYPHOON    1.501e+01
+## 39    MT                     HAIL    1.291e-01
+## 40    NC                HURRICANE    6.405e+00
+## 41    ND                    FLOOD    3.990e+00
+## 42    NE                  TORNADO    1.746e+00
+## 43    NH                ICE STORM    6.493e-02
+## 44    NJ                    FLOOD    2.112e+00
+## 45    NM         WILD/FOREST FIRE    1.510e+00
+## 46    NV                    FLOOD    6.839e-01
+## 47    NY              FLASH FLOOD    1.835e+00
+## 48    OH                  TORNADO    2.285e+00
+## 49    OK                  TORNADO    3.319e+00
+## 50    OR                    FLOOD    7.410e-01
+## 51    PA                  TORNADO    1.796e+00
+## 53    PK         MARINE HIGH WIND    3.100e-05
+## 55    PR                HURRICANE    2.275e+00
+## 56    PZ       MARINE STRONG WIND    7.600e-05
+## 57    RI                    FLOOD    9.286e-02
+## 58    SC                  TORNADO    5.368e-01
+## 59    SD                  TORNADO    2.319e-01
+## 60    SL         MARINE TSTM WIND    1.500e-05
+## 62    TN                    FLOOD    4.250e+00
+## 63    TX                  DROUGHT    6.722e+00
+## 64    UT                    FLOOD    3.319e-01
+## 65    VA        HURRICANE/TYPHOON    5.266e-01
+## 66    VI                HURRICANE    2.822e-02
+## 67    VT                    FLOOD    1.112e+00
+## 68    WA                     HAIL    2.199e-01
+## 69    WI              FLASH FLOOD    1.188e+00
+## 70    WV              FLASH FLOOD    4.865e-01
+## 71    WY                     HAIL    1.131e-01
+</code></pre>
+
+<pre><code class="r">library(maps)
+
+economicData &lt;- economicData[!is.na(economicData$totalCost_Bn), ]
+
+data(state.fips)
+tmp &lt;- state.fips
+tmp &lt;- data.frame(tmp$abb, tmp$polyname)
+colnames(tmp) &lt;- c(&quot;state&quot;, &quot;stateName&quot;)
+economicData &lt;- merge(economicData, tmp)
+
+economicData$totalCost_Bn &lt;- (economicData$totalCost_Bn)^(1/3)
+
+economicData$normCost &lt;- (economicData$totalCost_Bn - min(economicData$totalCost_Bn))/(max(economicData$totalCost_Bn) - 
+    min(economicData$totalCost_Bn))
+
+# plot
+pal &lt;- colorRamp(c(&quot;white&quot;, &quot;black&quot;))
+map(&quot;state&quot;, regions = economicData$stateName, lty = 1, lwd = 1, boundary = TRUE, 
+    fill = TRUE, col = rgb(pal(economicData$normCost)/255))
+title(main = &quot;Most harmed states by weather events with economic impact\n (white: least harmed, black: most harmed)&quot;)
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-10.png" alt="plot of chunk unnamed-chunk-10"> </p>
+
+<h2>Health impact</h2>
+
+<pre><code class="r">colnames(healthData) &lt;- c(&quot;eventType&quot;, &quot;totalHealthCost&quot;, &quot;state&quot;)
+healthData &lt;- healthData[, c(&quot;state&quot;, &quot;eventType&quot;, &quot;totalHealthCost&quot;)]
+healthData[!is.na(healthData$totalHealthCost), ]
+</code></pre>
+
+<pre><code>##    state                eventType totalHealthCost
+## 1     AK                ICE STORM         33.4125
+## 2     AL                  TORNADO       7877.1258
+## 3     AM MARINE THUNDERSTORM WIND         21.2689
+## 4     AN       MARINE STRONG WIND         17.4015
+## 5     AR                  TORNADO       5064.5173
+## 6     AS                  TSUNAMI        130.1814
+## 7     AZ               DUST STORM        176.8428
+## 8     CA                 WILDFIRE        611.4135
+## 9     CO                  TORNADO        253.2910
+## 10    CT                  TORNADO        699.6226
+## 11    DC           EXCESSIVE HEAT        315.6478
+## 12    DE                  TORNADO         70.9818
+## 13    FL                  TORNADO       3283.4283
+## 14    GA                  TORNADO       3867.7126
+## 16    GU        HURRICANE/TYPHOON        332.3795
+## 17    HI                HIGH SURF         20.4146
+## 18    IA                  TORNADO       2175.5368
+## 19    ID        THUNDERSTORM WIND         73.4522
+## 20    IL                  TORNADO       4099.1294
+## 21    IN                  TORNADO       4187.3505
+## 22    KS                  TORNADO       2688.0431
+## 23    KY                  TORNADO       2774.4141
+## 24    LA                  TORNADO       2580.4577
+## 28    LM MARINE THUNDERSTORM WIND          0.9347
+## 31    MA                  TORNADO       1756.8414
+## 32    MD           EXCESSIVE HEAT        461.5193
+## 33    ME                LIGHTNING         64.2321
+## 34    MH                HIGH SURF          0.8426
+## 35    MI                  TORNADO       3340.9094
+## 36    MN                  TORNADO       1952.4496
+## 37    MO                  TORNADO       4287.0509
+## 38    MS                  TORNADO       6191.3236
+## 39    MT         WILD/FOREST FIRE         31.5576
+## 40    NC                  TORNADO       2501.9325
+## 41    ND                  TORNADO        318.3618
+## 42    NE                  TORNADO       1136.1336
+## 43    NH                LIGHTNING         78.3421
+## 44    NJ           EXCESSIVE HEAT        299.5644
+## 45    NM                  TORNADO        151.4231
+## 46    NV                    FLOOD         49.8827
+## 47    NY                  TORNADO        304.1441
+## 48    OH                  TORNADO       4407.0040
+## 49    OK                  TORNADO       4767.5576
+## 50    OR                HIGH WIND         49.1107
+## 51    PA                  TORNADO       1221.4486
+## 55    PR               HEAVY RAIN          9.6124
+## 56    PZ       MARINE STRONG WIND          2.7763
+## 57    RI                  TORNADO         22.6628
+## 58    SC                  TORNADO       1288.2890
+## 59    SD                  TORNADO        439.4989
+## 62    TN                  TORNADO       4706.3186
+## 63    TX                  TORNADO       8105.6196
+## 64    UT             WINTER STORM        411.2769
+## 65    VA                  TORNADO        901.2121
+## 66    VI                LIGHTNING          0.8887
+## 67    VT                TSTM WIND         22.6593
+## 68    WA                  TORNADO        302.3291
+## 69    WI                  TORNADO       1571.1703
+## 70    WV                TSTM WIND        135.0149
+## 71    WY             WINTER STORM        117.6506
+</code></pre>
+
+<pre><code class="r">library(maps)
+
+healthData &lt;- healthData[!is.na(healthData$totalHealthCost), ]
+
+data(state.fips)
+tmp &lt;- state.fips
+tmp &lt;- data.frame(tmp$abb, tmp$polyname)
+colnames(tmp) &lt;- c(&quot;state&quot;, &quot;stateName&quot;)
+healthData &lt;- merge(healthData, tmp)
+
+healthData$normCost &lt;- (healthData$totalHealthCost - min(healthData$totalHealthCost))/(max(healthData$totalHealthCost) - 
+    min(healthData$totalHealthCost))
+
+# plot
+pal &lt;- colorRamp(c(&quot;white&quot;, &quot;blue&quot;))
+map(&quot;state&quot;, regions = healthData$stateName, lty = 1, lwd = 1, boundary = TRUE, 
+    fill = TRUE, col = rgb(pal(healthData$normCost)/255))
+title(main = &quot;Most harmed states by weather events with health impact\n (blue: most harmed, white: least harmed)&quot;)
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-12.png" alt="plot of chunk unnamed-chunk-12"> </p>
+
+</body>
+
+</html>
